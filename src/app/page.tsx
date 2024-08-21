@@ -141,7 +141,7 @@ export default function Home() {
                       onClick={() => {
                         setSelectedAnswer(item);
                       }}
-                      className={selectedAnswer==item?"bg-blue-500 text-white mt-10 py-3" : "bg-gray-200 mt-10 py-3"}
+                      className={selectedAnswer==item?"bg-blue-500 text-white mt-10 py-3" : "bg-gray-200 text-black mt-10 py-3"}
                     >
                       {item}
                     </button>
