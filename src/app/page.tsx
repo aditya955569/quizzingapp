@@ -2,14 +2,22 @@
 import { useEffect, useState } from "react";
 import axios from "axios";
 
+type Question = {
+  category: string;
+  question: {
+    text: string;
+  };
+  correctAnswer: string;
+  incorrectAnswers: string[];
+};
 export default function Home() {
-  const [questions, setQuestions] = useState([]);
+  const [questions, setQuestions] = useState<Question[]>([]);
   const [index, setIndex] = useState(0);
   const [category, setCategory] = useState("");
   const [questionText, setQuestionText] = useState("");
   const [questionAnswer, setQuestionAnswer] = useState("");
   const [selectedAnswer, setSelectedAnswer] = useState("");
-  const [finalOptions, setFinalOptions] = useState([]);
+  const [finalOptions, setFinalOptions] = useState<string[]>([]);
   const [timer, setTimer] = useState(10);
   const [rightAnswer, setRightAnswer] = useState(false);
   const [wrongAnswer, setWrongAnswer] = useState(false);
@@ -58,7 +66,7 @@ export default function Home() {
   }, [questions, index]);
 
   useEffect(() => {
-    let timerInterval;
+    let timerInterval: NodeJS.Timeout | undefined;
     if (isTimerActive) {
       timerInterval = setInterval(() => {
         setTimer((prevTimer) => {
