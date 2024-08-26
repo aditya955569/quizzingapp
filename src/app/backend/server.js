@@ -10,7 +10,7 @@ const app = express();
 // Middleware
 app.use(express.json());
 const cors = require('cors');
-app.use(cors({ origin: process.env.FRONTEND_URL || 'http://localhost:3000' }));
+app.use(cors());
 // Connect to MongoDB
 console.log(process.env.MONGODB_URI);
 mongoose.connect(process.env.MONGODB_URI, {
