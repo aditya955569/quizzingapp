@@ -1,6 +1,7 @@
 'use client'
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import axios from "axios";
+import { motion } from "framer-motion";
 
 type Question = {
   category: string;
@@ -27,6 +28,7 @@ export default function Home() {
   const [correctAnswers,setCorrectAnswers]=useState(0);
   const [notAttempted,setNotAttempted]=useState(0);
   const [incorrectAnswers,setIncorrectAnswers]=useState(0);
+  const [showStats, setShowStats] = useState(false);
   let tempOptions = [];
 
   function shuffleArray<T>(array: T[]): T[] {
@@ -37,31 +39,28 @@ export default function Home() {
     return array;
   }
 
-  const getQuestions = async () => {
+  const getQuestions = useCallback(async () => {
     try {
       const response = await axios.get("https://the-trivia-api.com/v2/questions");
       setQuestions(response.data);
     } catch (error) {
       console.error(error);
     }
-  };
-
-  useEffect(() => {
-    getQuestions();
   }, []);
 
   useEffect(() => {
+    getQuestions();
+  }, [getQuestions]);
+
+  useEffect(() => {
     if (questions.length > 0) {
-      setCategory(questions[index].category);
-      setQuestionText(questions[index].question.text);
-      setQuestionAnswer(questions[index].correctAnswer);
-      tempOptions = [
-        questions[index].correctAnswer,
-        ...questions[index].incorrectAnswers,
-      ];
-      setFinalOptions(shuffleArray(tempOptions));
-      setIsTimerActive(true); // Start the timer only after the question is fully loaded
-      setTimer(10); // Reset timer to 10 seconds
+      const currentQuestion = questions[index];
+      setCategory(currentQuestion.category);
+      setQuestionText(currentQuestion.question.text);
+      setQuestionAnswer(currentQuestion.correctAnswer);
+      setFinalOptions(shuffleArray([currentQuestion.correctAnswer, ...currentQuestion.incorrectAnswers]));
+      setIsTimerActive(true);
+      setTimer(10);
     }
   }, [questions, index]);
 
@@ -71,18 +70,18 @@ export default function Home() {
       timerInterval = setInterval(() => {
         setTimer((prevTimer) => {
           if (prevTimer === 1) {
-            clearInterval(timerInterval); // Stop the timer at 0
-            handleSubmit(); // Automatically submit the answer when timer reaches 0
+            clearInterval(timerInterval);
+            handleSubmit();
           }
           return prevTimer - 1;
         });
       }, 1000);
     }
 
-    return () => clearInterval(timerInterval); // Cleanup on unmount or when re-running
+    return () => clearInterval(timerInterval);
   }, [isTimerActive]);
 
-  const handleNextQuestion = () => {
+  const handleNextQuestion = useCallback(() => {
     if (index + 1 >= questions.length) {
       setQuizOver(true);
       return;
@@ -92,71 +91,123 @@ export default function Home() {
     setNoAnswerSelected(false);
     setSelectedAnswer("");
     setIndex(index + 1);
-    setIsTimerActive(true); // Restart the timer for the next question
-  };
+    setIsTimerActive(true);
+  }, [index, questions.length]);
 
-  const handleSubmit = () => {
-    setIsTimerActive(false); // Stop the timer
+  const handleSubmit = useCallback(() => {
+    setIsTimerActive(false);
 
     if (!selectedAnswer) {
-      setNotAttempted(notAttempted+1)
-      setNoAnswerSelected(true); // Show message if no answer is selected
+      setNotAttempted(notAttempted+1);
+      setNoAnswerSelected(true);
     } else {
       if (selectedAnswer === questionAnswer) {
         setRightAnswer(true);
-        setCorrectAnswers(correctAnswers+1);
-        console.log("correct");
+        setCorrectAnswers(prev => prev + 1);
       } else {
         setWrongAnswer(true);
-        setIncorrectAnswers(incorrectAnswers+1);
-        console.log("wrong");
+        setIncorrectAnswers(prev => prev + 1);
       }
     }
 
-    setTimeout(handleNextQuestion, 2000); // Move to the next question after 2 seconds
-  };
+    setShowStats(true);
+    setTimeout(() => {
+      setShowStats(false);
+      handleNextQuestion();
+    }, 3000);
+  }, [selectedAnswer, questionAnswer, handleNextQuestion]);
 
   return (
-    <main className="flex min-h-screen flex-col items-center p-24">
-      <div>Correct Answers {correctAnswers}</div>
-      <div>Incorrect Answers {incorrectAnswers}</div>
-      <div>Not attempted {notAttempted}</div>
-      {quizOver ? (
-        <div>The quiz is over! Thanks for playing.</div>
-      ) : (
-        <>
-          {noAnswerSelected && <div>No answer was selected.</div>}
-          {wrongAnswer && <div>Your answer is incorrect.</div>}
-          {rightAnswer && <div>Your answer is correct.</div>}
-          {questions.length > 0 && !noAnswerSelected && !rightAnswer && !wrongAnswer && (
-            <div>
-              <div>{index+1}</div>
-              <div>{category}</div>
-              <div>{questionText}</div>
-              <div className="flex flex-col">
-                {finalOptions &&
-                  finalOptions.map((item, index) => (
+    <main className="flex min-h-screen flex-col items-center justify-center bg-gradient-to-r from-purple-400 via-pink-500 to-red-500 p-4">
+      <div className="w-full max-w-md bg-white rounded-lg shadow-xl p-6">
+        {quizOver ? (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="text-center"
+          >
+            <h2 className="text-2xl font-bold mb-4 text-gray-800">Quiz Over!</h2>
+            <p className="text-lg text-gray-700">Thanks for playing.</p>
+            <div className="mt-4 text-gray-600">
+              <p>Correct Answers: {correctAnswers}</p>
+              <p>Incorrect Answers: {incorrectAnswers}</p>
+              <p>Not Attempted: {notAttempted}</p>
+            </div>
+          </motion.div>
+        ) : (
+          <>
+            {showStats && (
+              <motion.div
+                initial={{ opacity: 0, y: -20 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="mb-4 p-3 rounded bg-blue-100 text-blue-800"
+              >
+                <p>Correct Answers: {correctAnswers}</p>
+                <p>Incorrect Answers: {incorrectAnswers}</p>
+                <p>Not Attempted: {notAttempted}</p>
+              </motion.div>
+            )}
+            {(noAnswerSelected || wrongAnswer || rightAnswer) && (
+              <motion.div
+                initial={{ opacity: 0, y: -20 }}
+                animate={{ opacity: 1, y: 0 }}
+                className={`mb-4 p-3 rounded ${
+                  noAnswerSelected ? 'bg-yellow-100 text-yellow-800' :
+                  wrongAnswer ? 'bg-red-100 text-red-800' :
+                  'bg-green-100 text-green-800'
+                }`}
+              >
+                {noAnswerSelected && 'No answer was selected.'}
+                {wrongAnswer && 'Your answer is incorrect.'}
+                {rightAnswer && 'Your answer is correct.'}
+              </motion.div>
+            )}
+            {questions.length > 0 && !noAnswerSelected && !rightAnswer && !wrongAnswer && (
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ duration: 0.5 }}
+              >
+                <div className="mb-4">
+                  <span className="text-sm font-semibold text-gray-500">Question {index + 1}/{questions.length}</span>
+                  <h2 className="text-xl font-bold text-gray-800">{category}</h2>
+                </div>
+                <p className="text-lg mb-6 text-gray-700">{questionText}</p>
+                <div className="space-y-3">
+                  {finalOptions.map((item, idx) => (
                     <button
-                      key={index}
-                      onClick={() => {
-                        setSelectedAnswer(item);
-                      }}
-                      className={selectedAnswer==item?"bg-blue-500 text-white mt-10 py-3" : "bg-gray-200 text-black mt-10 py-3"}
+                      key={idx}
+                      onClick={() => setSelectedAnswer(item)}
+                      className={`w-full p-3 text-left rounded transition-colors ${
+                        selectedAnswer === item
+                          ? 'bg-blue-500 text-white'
+                          : 'bg-gray-100 text-gray-800 hover:bg-gray-200'
+                      }`}
                     >
                       {item}
                     </button>
                   ))}
-              </div>
-              <div>Time left: {timer}s</div>
-              {selectedAnswer!=''&&
-              <button onClick={handleSubmit}>
-                Submit
-              </button>
-              }
-            </div>
-          )}
-        </>
-      )}
+                </div>
+                <div className="mt-6 flex items-center justify-between">
+                  <div className="text-sm font-medium text-gray-500">
+                    Time left: {timer}s
+                  </div>
+                  {selectedAnswer && (
+                    <button
+                      onClick={handleSubmit}
+                      className="px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600 transition-colors"
+                    >
+                      Submit
+                    </button>
+                  )}
+                </div>
+              </motion.div>
+            )}
+          </>
+        )}
+      </div>
     </main>
   );
 }
+
+// ... existing shuffleArray function ...
