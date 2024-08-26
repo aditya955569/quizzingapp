@@ -11,7 +11,7 @@ export default function Signup() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      await axios.post('/api/auth/signup', { username, password });
+      await axios.post(`${process.env.NEXT_PUBLIC_API_URL}/api/auth/signup`, { username, password });
       router.push('/login'); // Redirect to login page after successful signup
     } catch (error) {  
       setError(`Error creating account ${error}`);
