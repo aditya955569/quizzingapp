@@ -11,7 +11,7 @@ export default function Login() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      const response = await axios.post(`${process.env.NEXT_PUBLIC_API_URL}/api/auth/login`, { username, password });
+      const response = await axios.post('/api/auth/login', { username, password });
       localStorage.setItem('token', response.data.token);
       router.push('/'); // Redirect to home page after successful login
     } catch (error) {
